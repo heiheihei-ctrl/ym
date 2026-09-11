@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ym.mapper.YmSiteConfigMapper">
+
+    <resultMap type="com.ruoyi.ym.domain.YmSiteConfig" id="YmSiteConfigResult">
+        <id     property="id"             column="id" />
+        <result property="firmName"       column="firm_name" />
+        <result property="queryTopTip"    column="query_top_tip" />
+        <result property="queryBottomTip" column="query_bottom_tip" />
+        <result property="phone"          column="phone" />
+        <result property="address"        column="address" />
+        <result property="updatedAt"      column="updated_at" />
+    </resultMap>
+
+    <sql id="selectVo">
+        select id, firm_name, query_top_tip, query_bottom_tip, phone, address, updated_at
+        from site_config
+    </sql>
+
+    <select id="selectSiteConfig" resultMap="YmSiteConfigResult">
+        <include refid="selectVo"/>
+        where id = 1
+        limit 1
+    </select>
+
+    <insert id="insertSiteConfig">
+        insert into site_config (id, firm_name, query_top_tip, query_bottom_tip, phone, address, updated_at)
+        values (1, #{firmName}, #{queryTopTip}, #{queryBottomTip}, #{phone}, #{address}, sysdate())
+    </insert>
+
+    <update id="updateSiteConfig">
+        update site_config
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="firmName != null">firm_name = #{firmName},</if>
+            <if test="queryTopTip != null">query_top_tip = #{queryTopTip},</if>
+            <if test="queryBottomTip != null">query_bottom_tip = #{queryBottomTip},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="address != null">address = #{address},</if>
+            updated_at = sysdate(),
+        </trim>
+        where id = 1
+    </update>
+
+</mapper>

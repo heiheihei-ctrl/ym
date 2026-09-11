@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ym.mapper.LawyerMapper">
+
+    <resultMap type="com.ruoyi.ym.domain.Lawyer" id="LawyerResult">
+        <id     property="id"        column="id" />
+        <result property="userId"    column="user_id" />
+        <result property="username"  column="user_name" />
+        <result property="nickName"  column="nick_name" />
+        <result property="phone"     column="phone" />
+        <result property="realName"  column="real_name" />
+        <result property="lawyerNo"  column="lawyer_no" />
+        <result property="status"    column="status" />
+        <result property="createdAt" column="created_at" />
+        <result property="updatedAt" column="updated_at" />
+    </resultMap>
+
+    <sql id="selectLawyerVo">
+        select l.id, l.user_id, u.user_name, u.nick_name, l.phone, l.real_name, l.lawyer_no, l.status, l.created_at, l.updated_at
+        from lawyers l
+        left join sys_user u on l.user_id = u.user_id
+    </sql>
+
+    <select id="selectLawyerList" parameterType="com.ruoyi.ym.domain.Lawyer" resultMap="LawyerResult">
+        <include refid="selectLawyerVo"/>
+        <where>
+            <if test="userId != null">AND l.user_id = #{userId}</if>
+            <if test="username != null and username != ''">AND u.user_name like concat('%', #{username}, '%')</if>
+            <if test="phone != null and phone != ''">AND l.phone like concat('%', #{phone}, '%')</if>
+            <if test="realName != null and realName != ''">AND l.real_name like concat('%', #{realName}, '%')</if>
+            <if test="lawyerNo != null and lawyerNo != ''">AND l.lawyer_no like concat('%', #{lawyerNo}, '%')</if>
+            <if test="status != null">AND l.status = #{status}</if>
+        </where>
+        order by l.id desc
+    </select>
+
+    <select id="selectLawyerById" parameterType="Integer" resultMap="LawyerResult">
+        <include refid="selectLawyerVo"/>
+        where l.id = #{id}
+    </select>
+
+    <select id="selectLawyerByUserId" parameterType="Long" resultMap="LawyerResult">
+        <include refid="selectLawyerVo"/>
+        where l.user_id = #{userId} limit 1
+    </select>
+
+    <insert id="insertLawyer" parameterType="com.ruoyi.ym.domain.Lawyer" useGeneratedKeys="true" keyProperty="id">
+        insert into lawyers
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="phone != null and phone != ''">phone,</if>
+            <if test="realName != null and realName != ''">real_name,</if>
+            <if test="lawyerNo != null and lawyerNo != ''">lawyer_no,</if>
+            <if test="status != null">status,</if>
+            created_at,
+            updated_at,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="phone != null and phone != ''">#{phone},</if>
+            <if test="realName != null and realName != ''">#{realName},</if>
+            <if test="lawyerNo != null and lawyerNo != ''">#{lawyerNo},</if>
+            <if test="status != null">#{status},</if>
+            sysdate(),
+            sysdate(),
+        </trim>
+    </insert>
+
+    <update id="updateLawyer" parameterType="com.ruoyi.ym.domain.Lawyer">
+        update lawyers
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="phone != null and phone != ''">phone = #{phone},</if>
+            <if test="realName != null and realName != ''">real_name = #{realName},</if>
+            <if test="lawyerNo != null and lawyerNo != ''">lawyer_no = #{lawyerNo},</if>
+            <if test="status != null">status = #{status},</if>
+            updated_at = sysdate(),
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteLawyerById" parameterType="Integer">
+        delete from lawyers where id = #{id}
+    </delete>
+
+    <delete id="deleteLawyerByIds" parameterType="Integer">
+        delete from lawyers where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
+
+</mapper>

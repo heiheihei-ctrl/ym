@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>见证书真伪查验</title>
+  <script>
+    window.VERIFY_PAGE_CONFIG = {
+      apiBase: 'http://www.mclawfirm.cn:8080',
+      loginPath: '/login'
+    };
+  </script>
+  <style>
+    :root {
+      --primary: #8b1a1a;
+      --primary-dark: #6d1212;
+      --btn-primary: #409eff;
+      --btn-primary-dark: #337ecc;
+      --bg: #f5f6f8;
+      --text: #333;
+      --text-muted: #888;
+      --border: #e8e8e8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .verify-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .verify-header {
+      background: #fff;
+      border-bottom: 1px solid #eee;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .brand-icon img { width: 196px; }
+
+    .firm-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .system-name {
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .admin-link {
+      font-size: 14px;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .admin-link:hover {
+      color: var(--primary-dark);
+      text-decoration: underline;
+    }
+
+    .verify-main {
+      flex: 1;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 24px 48px;
+    }
+
+    .hero { text-align: center; margin-bottom: 36px; }
+
+    .hero-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 20px;
+      color: var(--primary);
+    }
+
+    .hero-icon svg { width: 100%; height: 100%; }
+
+    .hero-title {
+      margin-bottom: 12px;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .hero-desc {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .search-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 28px 32px 20px;
+      margin-bottom: 32px;
+    }
+
+    .search-label {
+      display: block;
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+
+    .search-row {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 0;
+      height: 40px;
+      min-height: 40px;
+      padding: 0 15px;
+      font-size: 14px;
+      line-height: 40px;
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-input:focus { border-color: var(--btn-primary); }
+
+    .search-btn {
+      min-width: 120px;
+      height: 40px;
+      padding: 0 20px;
+      font-size: 14px;
+      color: #fff;
+      background: var(--btn-primary);
+      border: 1px solid var(--btn-primary);
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .search-btn:hover { background: var(--btn-primary-dark); border-color: var(--btn-primary-dark); }
+    .search-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+
+    .search-tip {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .result-card {
+      display: none;
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      padding: 24px;
+      margin-bottom: 40px;
+    }
+
+    .result-card.is-show { display: block; }
+    .result-card.is-success { border-color: #b7e4c7; background: #f6fffa; }
+    .result-card.is-warn { border-color: #ffe58f; background: #fffbe6; }
+    .result-card.is-error { border-color: #ffccc7; background: #fff2f0; }
+
+    .result-head {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .result-icon {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .result-card.is-success .result-icon { color: #52c41a; }
+    .result-card.is-warn .result-icon { color: #faad14; }
+    .result-card.is-error .result-icon { color: #ff4d4f; }
+
+    .result-title {
+      margin-bottom: 6px;
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .result-msg {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .result-code {
+      margin-top: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--primary);
+    }
+
+    .result-detail { margin-top: 20px; }
+
+    .desc-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .desc-table th,
+    .desc-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .desc-table th {
+      width: 100px;
+      background: #fafafa;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .desc-table tr:last-child th,
+    .desc-table tr:last-child td { border-bottom: none; }
+
+    .cert-preview { margin-top: 20px; }
+
+    .image-preview { text-align: center; }
+
+    .preview-label {
+      margin-bottom: 10px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .preview-empty {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .cert-image {
+      max-width: 100%;
+      max-height: 360px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      cursor: zoom-in;
+    }
+
+    .qrcode-preview {
+      text-align: center;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--border);
+    }
+
+    .qrcode-image {
+      width: 168px;
+      height: 168px;
+      object-fit: contain;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .media-hint {
+      margin-bottom: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      text-align: left;
+    }
+
+    .cert-media-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .pdf-btn {
+      display: inline-block;
+      height: 32px;
+      line-height: 32px;
+      padding: 0 16px;
+      font-size: 14px;
+      color: #fff;
+      background: var(--btn-primary);
+      border-radius: 4px;
+      text-decoration: none;
+    }
+
+    .pdf-btn:hover { background: var(--btn-primary-dark); }
+
+    .pdf-tip-box {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: #f0f7ff;
+      border: 1px solid #d6e8ff;
+      border-radius: 6px;
+      text-align: center;
+    }
+
+    .pdf-tip-text {
+      margin-bottom: 12px;
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text-muted);
+      text-align: left;
+    }
+
+    .pdf-btn-block {
+      display: block;
+      width: 100%;
+      max-width: 300px;
+      margin: 0 auto;
+      box-sizing: border-box;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      text-align: center;
+    }
+
+    .feature-item h3 {
+      margin-bottom: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .feature-item p {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-muted);
+    }
+
+    .verify-footer {
+      background: #fff;
+      border-top: 1px solid #eee;
+      text-align: center;
+      padding: 28px 24px 32px;
+    }
+
+    .footer-firm {
+      margin-bottom: 12px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .footer-contact {
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .footer-contact span {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .footer-contact svg { width: 14px; height: 14px; }
+
+    .footer-slogan {
+      font-size: 13px;
+      color: var(--primary);
+      letter-spacing: 2px;
+    }
+
+    .footer-more-wrap {
+      margin-top: 14px;
+    }
+
+    .more-link-wrap {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--border);
+      text-align: center;
+    }
+
+    .more-link {
+      font-size: 15px;
+      color: var(--btn-primary);
+      text-decoration: underline;
+      font-weight: 500;
+    }
+
+    .more-link:hover { color: var(--btn-primary-dark); }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      font-size: 14px;
+      z-index: 9999;
+      display: none;
+    }
+
+    .toast.is-show { display: block; }
+
+    .modal-mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-mask.is-show { display: flex; }
+
+    .modal-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 22px 20px;
+      max-width: 360px;
+      width: 100%;
+    }
+
+    .modal-box h3 {
+      font-size: 17px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .modal-box p {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .modal-actions .pdf-btn {
+      flex: 1;
+      height: 40px;
+      line-height: 40px;
+      text-align: center;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .modal-actions .btn-cancel {
+      background: #f5f5f5;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    @media (max-width: 768px) {
+      .search-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      /* 列布局下 flex:1 会让输入框在部分浏览器里高度被压扁，需取消并固定高度 */
+      .search-input {
+        flex: none;
+        width: 100%;
+        height: 44px;
+        min-height: 44px;
+        line-height: normal;
+        font-size: 16px;
+      }
+
+      .search-btn {
+        width: 100%;
+        height: 44px;
+        min-height: 44px;
+      }
+
+      .features { grid-template-columns: 1fr; gap: 20px; }
+      .footer-contact { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="verify-page">
+    <header class="verify-header">
+      <div class="header-inner">
+        <div class="brand">
+          <div class="brand-icon">
+            <img src="./logo-long.jpg" alt="">
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="verify-main">
+      <section class="hero">
+        <div class="hero-icon">
+          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <rect x="8" y="4" width="28" height="36" rx="2" stroke="currentColor" stroke-width="2.5" />
+            <path d="M14 14h16M14 22h16M14 30h10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+            <circle cx="34" cy="34" r="10" fill="#fff" stroke="currentColor" stroke-width="2.5" />
+            <path d="M31 34l2 2 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <h2 class="hero-title">见证书真伪查验</h2>
+        <p class="hero-desc" id="heroDesc">本系统由律师事务所提供见证服务，证书信息真实可靠</p>
+      </section>
+
+      <section class="search-card">
+        <label class="search-label" for="codeInput">见证书查询码</label>
+        <div class="search-row">
+          <input
+            id="codeInput"
+            class="search-input"
+            type="text"
+            placeholder="请输入见证书查询码"
+            autocomplete="off"
+          />
+          <button type="button" class="search-btn" id="searchBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" stroke-linecap="round" />
+            </svg>
+            查询
+          </button>
+        </div>
+        <p class="search-tip">· 查询码不区分大小写，系统会自动纠错（如字母 O 与数字 0）</p>
+      </section>
+
+      <section id="resultCard" class="result-card">
+        <div class="result-head">
+          <div class="result-icon" id="resultIcon"></div>
+          <div>
+            <p class="result-title" id="resultTitle"></p>
+            <p class="result-msg" id="resultMsg"></p>
+            <p class="result-code" id="resultCode" style="display:none;"></p>
+          </div>
+        </div>
+        <div id="resultDetail" class="result-detail" style="display:none;"></div>
+      </section>
+
+      <section class="features">
+        <div class="feature-item">
+          <h3>律所见证</h3>
+          <p>由执业律师现场见证，出具具备法律效力的见证书</p>
+        </div>
+        <div class="feature-item">
+          <h3>全程可溯</h3>
+          <p>采摘、包装全程记录，产地来源、日期一目了然</p>
+        </div>
+        <div class="feature-item">
+          <h3>防伪验真</h3>
+          <p>每份证书对应唯一查询码，扫码即可查验真伪</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="verify-footer">
+      <p class="footer-firm" id="footerFirm">加载中...</p>
+      <p class="footer-contact">
+        <span>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.54.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.54 1 1 0 01-.25 1.01l-2.2 2.2z"/></svg>
+          <span id="footerPhone">加载中...</span>
+        </span>
+        <span>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z"/></svg>
+          <span id="footerAddress">加载中...</span>
+        </span>
+      </p>
+      <p class="footer-slogan" id="footerSlogan">加载中...</p>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <div id="pdfModal" class="modal-mask">
+    <div class="modal-box">
+      <h3>如何下载 PDF</h3>
+      <p>请使用系统浏览器打开 PDF 页面。在微信、支付宝内请先点右上角「…」，选择「在浏览器中打开」；打开后使用浏览器菜单中的「下载」或「分享 → 存储到文件」完成保存。</p>
+      <div class="modal-actions">
+        <button type="button" class="pdf-btn btn-cancel" id="pdfModalCancel">取消</button>
+        <button type="button" class="pdf-btn" id="pdfModalConfirm">去打开</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var CFG = window.VERIFY_PAGE_CONFIG || {};
+      var API_BASE = (CFG.apiBase || '').replace(/\/$/, '');
+      var MOBILE_BREAKPOINT = 768;
+
+      var defaultSiteConfig = {
+        firmName: '杭州市某某律师事务所',
+        queryTopTip: '本系统由律师事务所提供见证服务，证书信息真实可靠',
+        queryBottomTip: '扫码查证 · 谨防假冒',
+        phone: '0571-XXXXXXXX',
+        address: '浙江省杭州市西湖区XX路XX号XX大厦XX楼'
+      };
+
+      var siteConfig = Object.assign({}, defaultSiteConfig);
+      var isMobile = false;
+      var pendingPdfUrl = '';
+
+      var ICONS = {
+        success: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>',
+        warn: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',
+        error: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg>'
+      };
+
+      var VERIFY_NOT_FOUND_MSG = '未能查到对应的见证书，请核实查询码后重试。';
+
+      var TITLE_MAP = {
+        VERIFIED: '查验通过',
+        NOT_FOUND: '查询未通过'
+      };
+
+      /** 公开查验：仅已激活展示详情，其余情况统一提示 */
+      function normalizeVerifyResult(data) {
+        data = data || {};
+        var status = data.status;
+        if (data.verified || status === 2) {
+          data.verified = true;
+          data.resultType = 'VERIFIED';
+          data.publicStatusText = '已生效';
+          return data;
+        }
+        data.verified = false;
+        data.resultType = 'NOT_FOUND';
+        data.message = VERIFY_NOT_FOUND_MSG;
+        return data;
+      }
+
+      function $(id) { return document.getElementById(id); }
+
+      function setText(id, text) {
+        var el = $(id);
+        if (el) el.textContent = text;
+      }
+
+      function showToast(msg) {
+        var el = $('toast');
+        el.textContent = msg;
+        el.classList.add('is-show');
+        setTimeout(function () { el.classList.remove('is-show'); }, 2500);
+      }
+
+      function showPdfTipModal(url) {
+        pendingPdfUrl = url;
+        $('pdfModal').classList.add('is-show');
+      }
+
+      function hidePdfTipModal() {
+        $('pdfModal').classList.remove('is-show');
+        pendingPdfUrl = '';
+      }
+
+      $('pdfModalCancel').addEventListener('click', hidePdfTipModal);
+      $('pdfModal').addEventListener('click', function (e) {
+        if (e.target === $('pdfModal')) hidePdfTipModal();
+      });
+      $('pdfModalConfirm').addEventListener('click', function () {
+        if (pendingPdfUrl) window.open(pendingPdfUrl, '_blank', 'noopener');
+        hidePdfTipModal();
+      });
+
+      function isMobileUA() {
+        return /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
+      }
+
+      function updateDeviceType() {
+        isMobile = window.innerWidth <= MOBILE_BREAKPOINT || isMobileUA();
+      }
+
+      function resolveFileUrl(path) {
+        if (!path) return '';
+        if (/^https?:\/\//i.test(path)) return path;
+        return API_BASE + (path.charAt(0) === '/' ? path : '/' + path);
+      }
+
+      function formatDate(val) {
+        if (!val) return '-';
+        var d = new Date(val);
+        if (isNaN(d.getTime())) return val;
+        var y = d.getFullYear();
+        var m = String(d.getMonth() + 1).padStart(2, '0');
+        var day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
+      }
+
+      function apiGet(url) {
+        return fetch(API_BASE + url, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        }).then(function (res) {
+          if (!res.ok) {
+            return res.text().then(function (text) {
+              throw new Error('HTTP ' + res.status + (text ? ': ' + text.slice(0, 120) : ''));
+            });
+          }
+          return res.json();
+        });
+      }
+
+      /** 回填系统配置（GET /ym/siteConfig/public，对应后台「系统配置」） */
+      function applySiteConfig(data) {
+        data = data || {};
+        siteConfig.firmName = data.firmName || defaultSiteConfig.firmName;
+        siteConfig.queryTopTip = data.queryTopTip || defaultSiteConfig.queryTopTip;
+        siteConfig.queryBottomTip = data.queryBottomTip || defaultSiteConfig.queryBottomTip;
+        siteConfig.phone = data.phone || defaultSiteConfig.phone;
+        siteConfig.address = data.address || defaultSiteConfig.address;
+        setText('footerFirm', siteConfig.firmName);
+        setText('heroDesc', siteConfig.queryTopTip);
+        setText('footerPhone', siteConfig.phone);
+        setText('footerAddress', siteConfig.address);
+        setText('footerSlogan', siteConfig.queryBottomTip);
+      }
+
+      var BASE_DETAIL_EMPTY_MSG = '该基地暂无介绍';
+
+      function buildBaseDetailLinkHtml() {
+        return '<p class="more-link-wrap"><a class="more-link js-base-detail" href="javascript:void(0)">查看该基地详情</a></p>';
+      }
+
+      function bindBaseDetailLink(container, baseDetailUrl) {
+        if (!container) return;
+        var link = container.querySelector('.js-base-detail');
+        if (!link) return;
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          var url = (baseDetailUrl || '').trim();
+          if (url) {
+            window.open(url, '_blank', 'noopener');
+            return;
+          }
+          showToast(BASE_DETAIL_EMPTY_MSG);
+        });
+      }
+
+      function loadSiteConfig() {
+        return apiGet('/ym/siteConfig/public').then(function (res) {
+          if (res && res.code === 200 && res.data) {
+            applySiteConfig(res.data);
+            return;
+          }
+          applySiteConfig(defaultSiteConfig);
+        }).catch(function () {
+          applySiteConfig(defaultSiteConfig);
+        });
+      }
+
+      function resultCardClass(result) {
+        if (result.verified) return 'is-success';
+        return 'is-error';
+      }
+
+      function resultIconKey(result) {
+        if (result.verified) return 'success';
+        return 'error';
+      }
+
+      function buildDetailHtml(data) {
+        var rows = [
+          ['产地来源', data.origin || '-'],
+          ['采摘日期', formatDate(data.pickDate)],
+          ['包装日期', formatDate(data.packDate)],
+          ['见证律师', data.lawyerName || '-'],
+          ['证书状态', data.publicStatusText || '已生效']
+        ];
+        var html = '<table class="desc-table"><tbody>';
+        rows.forEach(function (r) {
+          html += '<tr><th>' + r[0] + '</th><td>' + escapeHtml(r[1]) + '</td></tr>';
+        });
+        html += '</tbody></table>';
+
+        var qrPath = data.codeUrl || '';
+        var qrUrl = qrPath ? resolveFileUrl(qrPath) : '';
+        var pdfUrl = data.certFile ? resolveFileUrl(data.certFile) : '';
+
+        if (qrUrl) {
+          html += '<div class="cert-preview qrcode-preview">';
+          html += '<p class="preview-label">扫码二维码</p>';
+          if (isMobile) {
+            html += '<p class="media-hint">您也可保存或转发本页二维码，供他人扫码查验。</p>';
+          } else {
+            html += '<p class="media-hint">电脑端可使用微信「扫一扫」或浏览器扫码插件，扫描下方二维码进入查验页。</p>';
+          }
+          html += '<img class="qrcode-image" src="' + escapeAttr(qrUrl) + '" alt="扫码二维码" />';
+          html += '</div>';
+        }
+
+        if (pdfUrl) {
+          html += '<div class="cert-preview pdf-tip-box">';
+          html += '<p class="preview-label">见证书 PDF</p>';
+          if (isMobile) {
+            html += '<p class="media-hint">手机端请点击下方按钮下载 PDF。若在微信内打开，请先点右上角「…」选择「在浏览器中打开」，再按提示保存文件。</p>';
+          } else {
+            html += '<p class="media-hint">电脑端点击下方按钮可打开 PDF，使用浏览器「下载」或 Ctrl+S 保存到本地。</p>';
+          }
+          html += '<button type="button" class="pdf-btn pdf-btn-block btn-download-pdf" data-pdf-url="' + escapeAttr(pdfUrl) + '">下载见证书 PDF</button>';
+          html += '</div>';
+        } else if (data.verified) {
+          html += '<p class="preview-empty">暂无见证书 PDF 文件</p>';
+        }
+        html += buildBaseDetailLinkHtml();
+        return html;
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function escapeAttr(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+      }
+
+      function renderResult(raw) {
+        updateDeviceType();
+        var data = normalizeVerifyResult(raw);
+        var card = $('resultCard');
+        card.className = 'result-card is-show ' + resultCardClass(data);
+        $('resultIcon').innerHTML = ICONS[resultIconKey(data)] || ICONS.error;
+        $('resultTitle').textContent = TITLE_MAP[data.resultType] || '查询结果';
+        $('resultMsg').textContent = data.verified ? (data.message || '') : (data.message || VERIFY_NOT_FOUND_MSG);
+        var codeEl = $('resultCode');
+        if (data.verified && data.code) {
+          codeEl.style.display = 'block';
+          codeEl.textContent = '查询码：' + data.code;
+        } else {
+          codeEl.style.display = 'none';
+        }
+        var detailEl = $('resultDetail');
+        if (data.verified) {
+          detailEl.style.display = 'block';
+          detailEl.innerHTML = buildDetailHtml(data);
+          detailEl.querySelectorAll('.btn-download-pdf').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var url = btn.getAttribute('data-pdf-url');
+              if (url) showPdfTipModal(url);
+            });
+          });
+          bindBaseDetailLink(detailEl, data.baseDetailUrl);
+        } else {
+          detailEl.style.display = 'none';
+          detailEl.innerHTML = '';
+        }
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      function handleSearch() {
+        var code = ($('codeInput').value || '').trim();
+        if (!code) {
+          showToast('请输入见证书查询码');
+          return;
+        }
+        var btn = $('searchBtn');
+        btn.disabled = true;
+        $('resultCard').classList.remove('is-show');
+        updateDeviceType();
+        apiGet('/ym/certificate/public/verify?code=' + encodeURIComponent(code))
+          .then(function (res) {
+            if (res && res.code === 200) {
+              renderResult(res.data || {});
+            } else {
+              showToast((res && res.msg) || '查询失败');
+            }
+          })
+          .catch(function () {
+            showToast('网络异常，请稍后重试');
+          })
+          .finally(function () {
+            btn.disabled = false;
+          });
+      }
+
+      function getQueryCode() {
+        var params = new URLSearchParams(window.location.search);
+        return params.get('code') || '';
+      }
+
+      var adminLink = $('adminLink');
+      if (adminLink) adminLink.href = CFG.loginPath || '/login';
+      $('searchBtn').addEventListener('click', handleSearch);
+      $('codeInput').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') handleSearch();
+      });
+      window.addEventListener('resize', updateDeviceType);
+
+      updateDeviceType();
+      loadSiteConfig().then(function () {
+        var q = getQueryCode();
+        if (q) {
+          $('codeInput').value = q;
+          handleSearch();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

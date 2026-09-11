@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ym.mapper.VerificationCodeMapper">
+
+    <resultMap type="com.ruoyi.ym.domain.VerificationCode" id="VerificationCodeResult">
+        <id     property="id"      column="id" />
+        <result property="code"    column="code" />
+        <result property="codeUrl" column="code_url" />
+    </resultMap>
+
+    <sql id="selectVo">
+        select id, code, code_url from verification
+    </sql>
+
+    <select id="selectVerificationCodeList" resultMap="VerificationCodeResult">
+        <include refid="selectVo"/>
+        <where>
+            <if test="code != null and code != ''">AND code like concat('%', #{code}, '%')</if>
+        </where>
+        order by id desc
+    </select>
+
+    <select id="selectUnusedVerificationCodeList" resultMap="VerificationCodeResult">
+        select v.id, v.code, v.code_url
+        from verification v
+        left join certificates c on c.code = v.id
+        where c.id is null
+        order by v.id desc
+    </select>
+
+    <select id="selectVerificationCodeById" resultMap="VerificationCodeResult">
+        <include refid="selectVo"/> where id = #{id}
+    </select>
+
+    <select id="selectVerificationCodeByCode" resultMap="VerificationCodeResult">
+        <include refid="selectVo"/> where code = #{code} limit 1
+    </select>
+
+    <select id="selectVerificationCodeByCodeIgnoreCase" resultMap="VerificationCodeResult">
+        <include refid="selectVo"/> where upper(code) = upper(#{code}) limit 1
+    </select>
+
+    <select id="selectMaxMonthlySeq" resultType="Integer">
+        select MAX(CAST(SUBSTRING(code, CHAR_LENGTH(#{monthKey}) + 1) AS UNSIGNED))
+        from verification
+        where code like concat(#{monthKey}, '%')
+          and SUBSTRING(code, CHAR_LENGTH(#{monthKey}) + 1) regexp '^[0-9]+$'
+    </select>
+
+    <insert id="batchInsertVerificationCode">
+        insert into verification (code, code_url) values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.code}, #{item.codeUrl})
+        </foreach>
+    </insert>
+
+    <delete id="deleteVerificationCodeByIds">
+        delete from verification where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
+
+    <select id="selectVerificationCodeByIds" resultMap="VerificationCodeResult">
+        <include refid="selectVo"/>
+        where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">#{id}</foreach>
+        order by id desc
+    </select>
+
+</mapper>

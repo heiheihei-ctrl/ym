@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ym.mapper.OriginMapper">
+
+    <resultMap type="com.ruoyi.ym.domain.Origin" id="OriginResult">
+        <id     property="id"         column="id"          />
+        <result property="name"       column="name"        />
+        <result property="sortOrder"  column="sort_order"  />
+        <result property="status"     column="status"      />
+        <result property="createdAt"  column="created_at"  />
+    </resultMap>
+
+    <sql id="selectOriginVo">
+        select id, name, sort_order, status, created_at from origins
+    </sql>
+
+    <select id="selectOriginList" parameterType="com.ruoyi.ym.domain.Origin" resultMap="OriginResult">
+        <include refid="selectOriginVo"/>
+        <where>
+            <if test="name != null and name != ''">
+                AND name like concat('%', #{name}, '%')
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+        order by sort_order asc, id asc
+    </select>
+
+    <select id="selectOriginById" parameterType="Integer" resultMap="OriginResult">
+        <include refid="selectOriginVo"/>
+        where id = #{id}
+    </select>
+
+    <insert id="insertOrigin" parameterType="com.ruoyi.ym.domain.Origin" useGeneratedKeys="true" keyProperty="id">
+        insert into origins
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">name,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="status != null">status,</if>
+            created_at,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="name != null and name != ''">#{name},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="status != null">#{status},</if>
+            sysdate(),
+        </trim>
+    </insert>
+
+    <update id="updateOrigin" parameterType="com.ruoyi.ym.domain.Origin">
+        update origins
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="status != null">status = #{status},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteOriginById" parameterType="Integer">
+        delete from origins where id = #{id}
+    </delete>
+
+    <delete id="deleteOriginByIds" parameterType="Integer">
+        delete from origins where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>见证书查验</title>
+  <script>
+    window.VERIFY_PAGE_CONFIG = {
+      apiBase: 'http://www.mclawfirm.cn:8080'
+    };
+  </script>
+  <style>
+    :root {
+      --primary: #8b1a1a;
+      --btn: #409eff;
+      --btn-dark: #337ecc;
+      --bg: #f5f6f8;
+      --text: #333;
+      --muted: #888;
+      --border: #e8e8e8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    .page { min-height: 100vh; display: flex; flex-direction: column; }
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #eee;
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .header h1 { font-size: 17px; font-weight: 600; }
+    .header p { margin-top: 4px; font-size: 12px; color: var(--muted); }
+    .main {
+      flex: 1;
+      max-width: 520px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 20px 16px 32px;
+    }
+    .loading, .error-box {
+      text-align: center;
+      padding: 48px 16px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .error-box { color: #cf1322; }
+    .card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 16px;
+    }
+    .preview-empty {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .btn-row { display: flex; flex-direction: column; gap: 12px; }
+    .btn {
+      display: block;
+      width: 100%;
+      height: 44px;
+      line-height: 44px;
+      text-align: center;
+      font-size: 15px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--btn); color: #fff; }
+    .btn-primary:active { background: var(--btn-dark); }
+    .btn-outline {
+      background: #fff;
+      color: var(--btn);
+      border: 1px solid var(--btn);
+    }
+    .page-footer {
+      padding: 20px 16px 28px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      border-top: 1px solid #eee;
+      background: #fff;
+    }
+    .link-verify {
+      display: block;
+      margin-top: 16px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--primary);
+      text-decoration: none;
+    }
+    .more-link-wrap {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px dashed var(--border);
+      text-align: center;
+    }
+    .more-link {
+      font-size: 15px;
+      color: var(--btn);
+      text-decoration: underline;
+      font-weight: 500;
+    }
+    .more-link:active { color: var(--btn-dark); }
+    .toast {
+      display: none;
+      position: fixed;
+      left: 50%;
+      bottom: 80px;
+      transform: translateX(-50%);
+      max-width: 80%;
+      padding: 10px 16px;
+      background: rgba(0, 0, 0, 0.78);
+      color: #fff;
+      font-size: 14px;
+      border-radius: 8px;
+      z-index: 2000;
+      text-align: center;
+    }
+    .toast.is-show { display: block; }
+    .modal-mask {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .modal-mask.is-show { display: flex; }
+    .modal-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 22px 20px;
+      max-width: 340px;
+      width: 100%;
+    }
+    .modal-box h3 {
+      font-size: 17px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .modal-box p {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+    .modal-actions { display: flex; gap: 10px; }
+    .modal-actions .btn { flex: 1; height: 40px; line-height: 40px; font-size: 14px; }
+    .modal-actions .btn-cancel {
+      background: #f5f5f5;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <h1 id="firmName">见证书查验</h1>
+      <p>扫码查看见证书 · 支持查看图片与下载 PDF</p>
+    </header>
+    <main class="main" id="mainContent">
+      <div class="loading" id="loadingTip">正在加载见证书信息…</div>
+    </main>
+    <footer class="page-footer">
+      <p>见证律所：浙江沐尘律师事务所</p>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <div class="modal-mask" id="pdfModal">
+    <div class="modal-box">
+      <h3>如何下载 PDF</h3>
+      <p>请使用系统浏览器打开 PDF 页面。在微信、支付宝内请先点右上角「…」，选择「在浏览器中打开」；打开后使用浏览器菜单中的「下载」或「分享 → 存储到文件」完成保存。</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-cancel" id="pdfModalCancel">取消</button>
+        <button type="button" class="btn btn-primary" id="pdfModalConfirm">去打开</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var CFG = window.VERIFY_PAGE_CONFIG || {};
+      var API_BASE = (CFG.apiBase || '').replace(/\/$/, '');
+      var pendingPdfUrl = '';
+      var verifyData = {};
+      var BASE_DETAIL_EMPTY_MSG = '该基地暂无介绍';
+
+      function $(id) { return document.getElementById(id); }
+
+      function showToast(msg) {
+        var el = $('toast');
+        el.textContent = msg;
+        el.classList.add('is-show');
+        setTimeout(function () { el.classList.remove('is-show'); }, 2500);
+      }
+
+      function resolveFileUrl(path) {
+        if (!path) return '';
+        if (/^https?:\/\//i.test(path)) return path;
+        return API_BASE + (path.charAt(0) === '/' ? path : '/' + path);
+      }
+
+      function escapeAttr(s) {
+        return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+      }
+
+      function apiGet(url) {
+        return fetch(API_BASE + url, { method: 'GET', headers: { 'Content-Type': 'application/json' } })
+          .then(function (res) {
+            if (!res.ok) {
+              return res.text().then(function (text) {
+                throw new Error('HTTP ' + res.status + (text ? ': ' + text.slice(0, 120) : ''));
+              });
+            }
+            return res.json();
+          });
+      }
+
+      function applySiteConfig(data) {
+        if (data && data.firmName) {
+          $('firmName').textContent = data.firmName;
+        }
+      }
+
+      function buildBaseDetailLinkHtml() {
+        return '<p class="more-link-wrap"><a class="more-link js-base-detail" href="javascript:void(0)">查看该基地详情</a></p>';
+      }
+
+      function bindBaseDetailLink(container) {
+        if (!container) return;
+        var link = container.querySelector('.js-base-detail');
+        if (!link) return;
+        link.addEventListener('click', function (e) {
+          e.preventDefault();
+          var url = (verifyData.baseDetailUrl || '').trim();
+          if (url) {
+            window.open(url, '_blank', 'noopener');
+            return;
+          }
+          showToast(BASE_DETAIL_EMPTY_MSG);
+        });
+      }
+
+      var VERIFY_NOT_FOUND_MSG = '未能查到对应的见证书，请核实查询码后重试。';
+
+      function normalize(data) {
+        data = data || {};
+        if (data.verified || data.status === 2) {
+          data.verified = true;
+          return data;
+        }
+        data.verified = false;
+        data.message = VERIFY_NOT_FOUND_MSG;
+        return data;
+      }
+
+      function getQueryCode() {
+        return new URLSearchParams(window.location.search).get('code') || '';
+      }
+
+      function showPdfTipModal(url) {
+        pendingPdfUrl = url;
+        $('pdfModal').classList.add('is-show');
+      }
+
+      function hidePdfTipModal() {
+        $('pdfModal').classList.remove('is-show');
+        pendingPdfUrl = '';
+      }
+
+      $('pdfModalCancel').addEventListener('click', hidePdfTipModal);
+      $('pdfModal').addEventListener('click', function (e) {
+        if (e.target === $('pdfModal')) hidePdfTipModal();
+      });
+      $('pdfModalConfirm').addEventListener('click', function () {
+        if (pendingPdfUrl) window.open(pendingPdfUrl, '_blank', 'noopener');
+        hidePdfTipModal();
+      });
+
+      function renderVerified(data) {
+        verifyData = data || {};
+        var imgPath = verifyData.certImage || '';
+        var imgUrl = imgPath ? resolveFileUrl(imgPath) : '';
+        var pdfUrl = verifyData.certFile ? resolveFileUrl(verifyData.certFile) : '';
+        var html = '<div class="card"><div class="btn-row">';
+        if (imgUrl) {
+          html += '<button type="button" class="btn btn-outline" id="btnViewImage">查看见证书图片</button>';
+        }
+        if (pdfUrl) {
+          html += '<button type="button" class="btn btn-primary" id="btnDownloadPdf">下载见证书 PDF</button>';
+        }
+        if (!imgUrl && !pdfUrl) {
+          html += '<p class="preview-empty">暂无见证书文件</p>';
+        }
+        html += '</div>' + buildBaseDetailLinkHtml() + '</div>';
+        $('mainContent').innerHTML = html;
+        bindBaseDetailLink($('mainContent'));
+        if (imgUrl && $('btnViewImage')) {
+          var imagePageUrl = 'cert-image.html?url=' + encodeURIComponent(imgUrl)
+            + '&back=' + encodeURIComponent(window.location.href);
+          $('btnViewImage').addEventListener('click', function () {
+            window.location.href = imagePageUrl;
+          });
+        }
+        if (pdfUrl && $('btnDownloadPdf')) {
+          $('btnDownloadPdf').addEventListener('click', function () { showPdfTipModal(pdfUrl); });
+        }
+      }
+
+      function renderError(msg) {
+        $('mainContent').innerHTML = '<div class="error-box">' + (msg || '加载失败') + '</div>' +
+          '<a class="link-verify" href="/index.html">前往查验页</a>';
+      }
+
+      function load() {
+        var code = getQueryCode();
+        if (!code) {
+          renderError('缺少查询码参数');
+          return;
+        }
+        var configPromise = apiGet('/ym/siteConfig/public').catch(function () { return null; });
+        var verifyPromise = apiGet('/ym/certificate/public/verify?code=' + encodeURIComponent(code));
+        configPromise.then(function (configRes) {
+          if (configRes && configRes.code === 200 && configRes.data) {
+            applySiteConfig(configRes.data);
+          }
+        });
+        verifyPromise
+          .then(function (verifyRes) {
+            if (!verifyRes || verifyRes.code !== 200) {
+              renderError((verifyRes && verifyRes.msg) || '查询失败');
+              return;
+            }
+            var data = normalize(verifyRes.data);
+            if (data.verified) {
+              renderVerified(data);
+            } else {
+              renderError(data.message || VERIFY_NOT_FOUND_MSG);
+            }
+          })
+          .catch(function (err) {
+            console.error('scan verify failed:', err);
+            renderError('网络异常，请稍后重试');
+          });
+      }
+
+      load();
+    })();
+  </script>
+</body>
+</html>

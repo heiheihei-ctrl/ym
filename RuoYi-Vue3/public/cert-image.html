@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+  <title>&#35265;&#35777;&#20070;&#22270;&#29255;</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f6f8;
+      color: #333;
+      min-height: 100vh;
+    }
+    .page { min-height: 100vh; display: flex; flex-direction: column; }
+    .header {
+      background: #fff;
+      border-bottom: 1px solid #eee;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .back-link {
+      font-size: 14px;
+      color: #409eff;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      flex: 1;
+      font-size: 17px;
+      font-weight: 600;
+      text-align: center;
+      margin-right: 42px;
+    }
+    .main {
+      flex: 1;
+      width: 100%;
+      padding: 0;
+    }
+    .cert-image {
+      display: block;
+      width: 100%;
+      height: auto;
+      vertical-align: top;
+      background: #fff;
+    }
+    .empty-tip {
+      padding: 48px 16px;
+      text-align: center;
+      font-size: 14px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <a class="back-link" id="backLink" href="javascript:history.back()">&#36820;&#22238;</a>
+      <h1>&#35265;&#35777;&#20070;&#22270;&#29255;</h1>
+    </header>
+    <main class="main" id="mainContent">
+      <p class="empty-tip">&#27491;&#22312;&#21152;&#36733;&#8230;</p>
+    </main>
+  </div>
+  <script>
+    (function () {
+      var MSG_NO_IMAGE = '\u6682\u65e0\u89c1\u8bc1\u4e66\u56fe\u7247';
+      var MSG_LOAD_FAIL = '\u56fe\u7247\u52a0\u8f7d\u5931\u8d25';
+      var IMG_ALT = '\u89c1\u8bc1\u4e66\u56fe\u7247';
+
+      function getImageUrl() {
+        var raw = new URLSearchParams(window.location.search).get('url') || '';
+        if (!raw) return '';
+        if (/^\s*javascript:/i.test(raw)) return '';
+        return raw.trim();
+      }
+
+      function getBackUrl() {
+        var back = new URLSearchParams(window.location.search).get('back') || '';
+        if (!back) return '';
+        if (/^\s*javascript:/i.test(back)) return '';
+        return back.trim();
+      }
+
+      var imgUrl = getImageUrl();
+      var backUrl = getBackUrl();
+      var main = document.getElementById('mainContent');
+      var backLink = document.getElementById('backLink');
+
+      if (backUrl) {
+        backLink.href = backUrl;
+      }
+
+      if (!imgUrl) {
+        main.innerHTML = '<p class="empty-tip">' + MSG_NO_IMAGE + '</p>';
+        return;
+      }
+
+      var img = document.createElement('img');
+      img.className = 'cert-image';
+      img.src = imgUrl;
+      img.alt = IMG_ALT;
+      img.onerror = function () {
+        main.innerHTML = '<p class="empty-tip">' + MSG_LOAD_FAIL + '</p>';
+      };
+      main.innerHTML = '';
+      main.appendChild(img);
+    })();
+  </script>
+</body>
+</html>

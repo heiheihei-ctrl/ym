@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ym.mapper.CertificateMapper">
+
+    <resultMap type="com.ruoyi.ym.domain.Certificate" id="CertificateResult">
+        <id     property="id"           column="id" />
+        <result property="code"               column="code" />
+        <result property="verificationCode" column="verification_code" />
+        <result property="codeUrl"            column="code_url" />
+        <result property="certImage"          column="cert_image" />
+        <result property="status"       column="status" />
+        <result property="origin"       column="origin" />
+        <result property="baseDetailUrl" column="base_detail_url" />
+        <result property="pickDate"     column="pick_date" />
+        <result property="packDate"     column="pack_date" />
+        <result property="lawyerName"   column="lawyer_name" />
+        <result property="certFile"     column="cert_file" />
+        <result property="uploadAt"     column="upload_at" />
+        <result property="uploadIp"     column="upload_ip" />
+        <result property="auditBy"      column="audit_by" />
+        <result property="auditAt"      column="audit_at" />
+        <result property="rejectReason" column="reject_reason" />
+        <result property="createdAt"    column="created_at" />
+        <result property="ipLog"        column="ip_log" />
+    </resultMap>
+
+    <sql id="selectCertificateVo">
+        select c.id, c.code, v.code as verification_code, v.code_url, c.cert_image, c.status, c.origin,
+               c.base_detail_url, c.pick_date, c.pack_date, c.lawyer_name, c.cert_file, c.upload_at, c.upload_ip,
+               c.audit_by, c.audit_at, c.reject_reason, c.created_at, c.ip_log
+        from certificates c
+        left join verification v on c.code = v.id
+    </sql>
+
+    <select id="selectCertificateList" resultMap="CertificateResult">
+        <include refid="selectCertificateVo"/>
+        <where>
+            <if test="verificationCode != null and verificationCode != ''">AND v.code like concat('%', #{verificationCode}, '%')</if>
+            <if test="status != null">AND c.status = #{status}</if>
+            <if test="origin != null and origin != ''">AND c.origin like concat('%', #{origin}, '%')</if>
+            <if test="lawyerName != null and lawyerName != ''">AND c.lawyer_name like concat('%', #{lawyerName}, '%')</if>
+        </where>
+        order by c.id desc
+    </select>
+
+    <select id="selectCertificateById" resultMap="CertificateResult">
+        <include refid="selectCertificateVo"/>
+        where c.id = #{id}
+    </select>
+
+    <select id="selectCertificateByVerificationId" resultMap="CertificateResult">
+        <include refid="selectCertificateVo"/>
+        where c.code = #{verificationId} limit 1
+    </select>
+
+    <insert id="insertCertificate" useGeneratedKeys="true" keyProperty="id">
+        insert into certificates
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="code != null">code,</if>
+            <if test="status != null">status,</if>
+            <if test="origin != null">origin,</if>
+            <if test="baseDetailUrl != null">base_detail_url,</if>
+            <if test="pickDate != null">pick_date,</if>
+            <if test="packDate != null">pack_date,</if>
+            <if test="lawyerName != null">lawyer_name,</if>
+            <if test="certFile != null">cert_file,</if>
+            <if test="certImage != null">cert_image,</if>
+            <if test="uploadAt != null">upload_at,</if>
+            <if test="uploadIp != null">upload_ip,</if>
+            <if test="auditBy != null">audit_by,</if>
+            <if test="auditAt != null">audit_at,</if>
+            <if test="rejectReason != null">reject_reason,</if>
+            <if test="ipLog != null">ip_log,</if>
+            created_at,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="code != null">#{code},</if>
+            <if test="status != null">#{status},</if>
+            <if test="origin != null">#{origin},</if>
+            <if test="baseDetailUrl != null">#{baseDetailUrl},</if>
+            <if test="pickDate != null">#{pickDate},</if>
+            <if test="packDate != null">#{packDate},</if>
+            <if test="lawyerName != null">#{lawyerName},</if>
+            <if test="certFile != null">#{certFile},</if>
+            <if test="certImage != null">#{certImage},</if>
+            <if test="uploadAt != null">#{uploadAt},</if>
+            <if test="uploadIp != null">#{uploadIp},</if>
+            <if test="auditBy != null">#{auditBy},</if>
+            <if test="auditAt != null">#{auditAt},</if>
+            <if test="rejectReason != null">#{rejectReason},</if>
+            <if test="ipLog != null">#{ipLog},</if>
+            sysdate(),
+        </trim>
+    </insert>
+
+    <update id="updateCertificate">
+        update certificates
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="status != null">status = #{status},</if>
+            <if test="origin != null">origin = #{origin},</if>
+            <if test="baseDetailUrl != null">base_detail_url = #{baseDetailUrl},</if>
+            <if test="pickDate != null">pick_date = #{pickDate},</if>
+            <if test="packDate != null">pack_date = #{packDate},</if>
+            <if test="lawyerName != null">lawyer_name = #{lawyerName},</if>
+            <if test="certFile != null">cert_file = #{certFile},</if>
+            <if test="certImage != null">cert_image = #{certImage},</if>
+            <if test="uploadAt != null">upload_at = #{uploadAt},</if>
+            <if test="uploadIp != null">upload_ip = #{uploadIp},</if>
+            <if test="auditBy != null">audit_by = #{auditBy},</if>
+            <if test="auditAt != null">audit_at = #{auditAt},</if>
+            <if test="rejectReason != null">reject_reason = #{rejectReason},</if>
+            <if test="ipLog != null">ip_log = #{ipLog},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteCertificateById">
+        delete from certificates where id = #{id}
+    </delete>
+
+    <delete id="deleteCertificateByIds">
+        delete from certificates where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
+
+</mapper>
