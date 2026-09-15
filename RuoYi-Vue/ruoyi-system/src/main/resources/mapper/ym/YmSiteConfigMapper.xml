@@ -3,17 +3,20 @@
 <mapper namespace="com.ruoyi.ym.mapper.YmSiteConfigMapper">
 
     <resultMap type="com.ruoyi.ym.domain.YmSiteConfig" id="YmSiteConfigResult">
-        <id     property="id"             column="id" />
-        <result property="firmName"       column="firm_name" />
-        <result property="queryTopTip"    column="query_top_tip" />
-        <result property="queryBottomTip" column="query_bottom_tip" />
-        <result property="phone"          column="phone" />
-        <result property="address"        column="address" />
-        <result property="updatedAt"      column="updated_at" />
+        <id     property="id"                    column="id" />
+        <result property="firmName"              column="firm_name" />
+        <result property="queryTopTip"           column="query_top_tip" />
+        <result property="queryBottomTip"        column="query_bottom_tip" />
+        <result property="phone"                 column="phone" />
+        <result property="address"               column="address" />
+        <result property="redirectUrl"           column="redirect_url" />
+        <result property="redirectDelaySeconds"  column="redirect_delay_seconds" />
+        <result property="updatedAt"             column="updated_at" />
     </resultMap>
 
     <sql id="selectVo">
-        select id, firm_name, query_top_tip, query_bottom_tip, phone, address, updated_at
+        select id, firm_name, query_top_tip, query_bottom_tip, phone, address,
+               redirect_url, redirect_delay_seconds, updated_at
         from site_config
     </sql>
 
@@ -24,8 +27,10 @@
     </select>
 
     <insert id="insertSiteConfig">
-        insert into site_config (id, firm_name, query_top_tip, query_bottom_tip, phone, address, updated_at)
-        values (1, #{firmName}, #{queryTopTip}, #{queryBottomTip}, #{phone}, #{address}, sysdate())
+        insert into site_config (id, firm_name, query_top_tip, query_bottom_tip, phone, address,
+                                 redirect_url, redirect_delay_seconds, updated_at)
+        values (1, #{firmName}, #{queryTopTip}, #{queryBottomTip}, #{phone}, #{address},
+                #{redirectUrl}, #{redirectDelaySeconds}, sysdate())
     </insert>
 
     <update id="updateSiteConfig">
@@ -36,6 +41,8 @@
             <if test="queryBottomTip != null">query_bottom_tip = #{queryBottomTip},</if>
             <if test="phone != null">phone = #{phone},</if>
             <if test="address != null">address = #{address},</if>
+            <if test="redirectUrl != null">redirect_url = #{redirectUrl},</if>
+            <if test="redirectDelaySeconds != null">redirect_delay_seconds = #{redirectDelaySeconds},</if>
             updated_at = sysdate(),
         </trim>
         where id = 1

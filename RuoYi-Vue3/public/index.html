@@ -6,7 +6,7 @@
   <title>见证书真伪查验</title>
   <script>
     window.VERIFY_PAGE_CONFIG = {
-      apiBase: 'http://www.mclawfirm.cn:8080',
+      apiBase: 'http://127.0.0.1:8080',
       loginPath: '/login'
     };
   </script>
@@ -749,6 +749,15 @@
         return y + '-' + m + '-' + day;
       }
 
+      function formatDateTime(val) {
+        if (!val) return '-';
+        if (typeof val === 'string') return val.replace('T', ' ').slice(0, 19);
+        var d = new Date(val);
+        if (isNaN(d.getTime())) return String(val);
+        return formatDate(d) + ' ' + String(d.getHours()).padStart(2, '0') + ':'
+          + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0');
+      }
+
       function apiGet(url) {
         return fetch(API_BASE + url, {
           method: 'GET',
@@ -812,17 +821,28 @@
       }
 
       function resultCardClass(result) {
-        if (result.verified) return 'is-success';
-        return 'is-error';
+        if (!result.verified) return 'is-error';
+        var c = (result.codeColor || 'GREEN').toUpperCase();
+        if (c === 'RED') return 'is-error';
+        if (c === 'YELLOW') return 'is-warn';
+        return 'is-success';
       }
 
       function resultIconKey(result) {
-        if (result.verified) return 'success';
-        return 'error';
+        if (!result.verified) return 'error';
+        var c = (result.codeColor || 'GREEN').toUpperCase();
+        if (c === 'RED') return 'error';
+        if (c === 'YELLOW') return 'warn';
+        return 'success';
       }
 
       function buildDetailHtml(data) {
+        var colorLabel = { GREEN: '绿码', YELLOW: '黄码', RED: '红码' }[(data.codeColor || 'GREEN').toUpperCase()] || '绿码';
         var rows = [
+          ['防伪色码', colorLabel],
+          ['扫码次数', data.scanCount != null ? String(data.scanCount) : '-'],
+          ['首次扫码', formatDateTime(data.firstScanAt)],
+          ['批次', data.batchName || data.batchNo || '-'],
           ['产地来源', data.origin || '-'],
           ['采摘日期', formatDate(data.pickDate)],
           ['包装日期', formatDate(data.packDate)],
@@ -838,6 +858,7 @@
         var qrPath = data.codeUrl || '';
         var qrUrl = qrPath ? resolveFileUrl(qrPath) : '';
         var pdfUrl = data.certFile ? resolveFileUrl(data.certFile) : '';
+        var videoUrl = data.videoUrl ? resolveFileUrl(data.videoUrl) : '';
 
         if (qrUrl) {
           html += '<div class="cert-preview qrcode-preview">';
@@ -848,6 +869,13 @@
             html += '<p class="media-hint">电脑端可使用微信「扫一扫」或浏览器扫码插件，扫描下方二维码进入查验页。</p>';
           }
           html += '<img class="qrcode-image" src="' + escapeAttr(qrUrl) + '" alt="扫码二维码" />';
+          html += '</div>';
+        }
+
+        if (videoUrl) {
+          html += '<div class="cert-preview pdf-tip-box">';
+          html += '<p class="preview-label">溯源视频</p>';
+          html += '<a class="pdf-btn pdf-btn-block" href="' + escapeAttr(videoUrl) + '" target="_blank" rel="noopener">查看跟采/溯源视频</a>';
           html += '</div>';
         }
 
@@ -886,7 +914,13 @@
         var card = $('resultCard');
         card.className = 'result-card is-show ' + resultCardClass(data);
         $('resultIcon').innerHTML = ICONS[resultIconKey(data)] || ICONS.error;
-        $('resultTitle').textContent = TITLE_MAP[data.resultType] || '查询结果';
+        $('resultTitle').textContent = (function () {
+          if (!data.verified) return TITLE_MAP.NOT_FOUND;
+          var c = (data.codeColor || 'GREEN').toUpperCase();
+          if (c === 'RED') return '红码预警';
+          if (c === 'YELLOW') return '黄码提示';
+          return '绿码 · 查验通过';
+        })();
         $('resultMsg').textContent = data.verified ? (data.message || '') : (data.message || VERIFY_NOT_FOUND_MSG);
         var codeEl = $('resultCode');
         if (data.verified && data.code) {

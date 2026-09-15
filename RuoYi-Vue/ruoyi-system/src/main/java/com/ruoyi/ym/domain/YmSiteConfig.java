@@ -28,6 +28,12 @@ public class YmSiteConfig implements Serializable
     /** 律所地址 */
     private String address;
 
+    /** 扫码证书页自动跳转地址（空则不跳转） */
+    private String redirectUrl;
+
+    /** 跳转等待秒数，默认 6 */
+    private Integer redirectDelaySeconds;
+
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date updatedAt;
 
@@ -89,6 +95,26 @@ public class YmSiteConfig implements Serializable
     public void setAddress(String address)
     {
         this.address = address;
+    }
+
+    public String getRedirectUrl()
+    {
+        return redirectUrl;
+    }
+
+    public void setRedirectUrl(String redirectUrl)
+    {
+        this.redirectUrl = redirectUrl;
+    }
+
+    public Integer getRedirectDelaySeconds()
+    {
+        return redirectDelaySeconds;
+    }
+
+    public void setRedirectDelaySeconds(Integer redirectDelaySeconds)
+    {
+        this.redirectDelaySeconds = redirectDelaySeconds;
     }
 
     public Date getUpdatedAt()

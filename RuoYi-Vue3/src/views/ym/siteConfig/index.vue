@@ -30,6 +30,24 @@
         <el-form-item label="律所地址" prop="address">
           <el-input v-model="form.address" placeholder="请输入律所地址" maxlength="300" show-word-limit />
         </el-form-item>
+        <el-form-item label="扫码后跳转地址" prop="redirectUrl">
+          <el-input
+            v-model="form.redirectUrl"
+            placeholder="例如 https://example.com ；留空则不自动跳转"
+            maxlength="500"
+            show-word-limit
+            clearable
+          />
+        </el-form-item>
+        <el-form-item label="跳转等待秒数" prop="redirectDelaySeconds">
+          <el-input-number
+            v-model="form.redirectDelaySeconds"
+            :min="0"
+            :max="300"
+            controls-position="right"
+          />
+          <span class="form-tip">证书页展示后等待指定秒数再跳转，默认 6 秒；填 0 为立即跳转</span>
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" icon="DocumentChecked" :loading="saving" v-hasPermi="['ym:siteConfig:edit']" @click="submitForm">
             保存配置
@@ -53,7 +71,9 @@ const form = ref({
   queryTopTip: '',
   queryBottomTip: '',
   phone: '',
-  address: ''
+  address: '',
+  redirectUrl: '',
+  redirectDelaySeconds: 6
 })
 
 const rules = {
@@ -61,7 +81,8 @@ const rules = {
   queryTopTip: [{ required: true, message: '请输入查询页顶部提示语', trigger: 'blur' }],
   queryBottomTip: [{ required: true, message: '请输入查询页底部提示语', trigger: 'blur' }],
   phone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }],
-  address: [{ required: true, message: '请输入律所地址', trigger: 'blur' }]
+  address: [{ required: true, message: '请输入律所地址', trigger: 'blur' }],
+  redirectDelaySeconds: [{ required: true, message: '请设置跳转等待秒数', trigger: 'change' }]
 }
 
 function loadConfig() {
@@ -74,7 +95,9 @@ function loadConfig() {
         queryTopTip: data.queryTopTip || '',
         queryBottomTip: data.queryBottomTip || '',
         phone: data.phone || '',
-        address: data.address || ''
+        address: data.address || '',
+        redirectUrl: data.redirectUrl || '',
+        redirectDelaySeconds: data.redirectDelaySeconds != null ? data.redirectDelaySeconds : 6
       }
     })
     .finally(() => {
@@ -86,7 +109,10 @@ function submitForm() {
   proxy.$refs.configRef.validate(valid => {
     if (!valid) return
     saving.value = true
-    saveSiteConfig(form.value)
+    saveSiteConfig({
+      ...form.value,
+      redirectUrl: (form.value.redirectUrl || '').trim()
+    })
       .then(() => {
         proxy.$modal.msgSuccess('保存成功')
         loadConfig()
@@ -127,5 +153,13 @@ loadConfig()
   :deep(.el-textarea__inner) {
     border-radius: 4px;
   }
+}
+
+.form-tip {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.4;
 }
 </style>

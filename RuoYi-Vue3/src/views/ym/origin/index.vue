@@ -10,6 +10,11 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
+      <el-form-item label="产品类型" prop="productType">
+        <el-select v-model="queryParams.productType" placeholder="请选择产品类型" clearable style="width: 160px">
+          <el-option v-for="item in productTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="状态" prop="status">
         <el-select v-model="queryParams.status" placeholder="请选择状态" clearable style="width: 200px">
           <el-option
@@ -42,6 +47,13 @@
     <el-table v-loading="loading" :data="originList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="编号" align="center" prop="id" width="80" />
+      <el-table-column label="产品类型" align="center" prop="productType" width="110">
+        <template #default="scope">
+          <el-tag :type="scope.row.productType === 'rice' ? 'warning' : 'success'" effect="plain">
+            {{ formatProductType(scope.row.productType) }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column label="产地地址" align="left" prop="name" min-width="220" show-overflow-tooltip />
       <el-table-column label="排序" align="center" prop="sortOrder" width="80" />
       <el-table-column label="状态" align="center" prop="status" width="100">
@@ -72,6 +84,11 @@
 
     <el-dialog :title="title" v-model="open" width="560px" append-to-body>
       <el-form ref="originRef" :model="form" :rules="rules" label-width="90px">
+        <el-form-item label="产品类型" prop="productType">
+          <el-radio-group v-model="form.productType">
+            <el-radio v-for="item in productTypeOptions" :key="item.value" :value="item.value">{{ item.label }}</el-radio>
+          </el-radio-group>
+        </el-form-item>
         <el-form-item label="所在地区" required>
           <el-cascader
             v-model="regionCodes"
@@ -81,9 +98,6 @@
             clearable
             style="width: 100%"
           />
-        </el-form-item>
-        <el-form-item v-if="form.id && form.name" label="当前地址">
-          <span class="current-name">{{ form.name }}</span>
         </el-form-item>
         <el-form-item label="详细地址" prop="detailAddress">
           <el-input
@@ -119,7 +133,8 @@
 
 <script setup name="YmOrigin">
 import { listOrigin, getOrigin, addOrigin, updateOrigin, delOrigin } from '@/api/ym/origin'
-import { regionData, buildFullAddress } from '@/utils/chinaRegion'
+import { regionData, buildFullAddress, parseStoredOriginName } from '@/utils/chinaRegion'
+import { loadEnabledProductOptions, productLabel } from '@/utils/ymProduct'
 
 const { proxy } = getCurrentInstance()
 
@@ -127,6 +142,7 @@ const ymEnableOptions = [
   { label: '启用', value: 1 },
   { label: '禁用', value: 0 }
 ]
+const productTypeOptions = ref([])
 
 const regionOptions = regionData
 const regionCodes = ref([])
@@ -147,10 +163,20 @@ const data = reactive({
     pageNum: 1,
     pageSize: 10,
     name: undefined,
+    productType: undefined,
     status: undefined
   },
   rules: {
-    detailAddress: [{ required: true, message: '请输入详细地址', trigger: 'blur' }]
+    productType: [{ required: true, message: '请选择产品类型', trigger: 'change' }],
+    detailAddress: [{
+      validator: (_r, v, cb) => {
+        const codes = regionCodes.value || []
+        if (codes.length >= 3) return cb()
+        if (v && String(v).trim()) return cb()
+        cb(new Error('请选择省、市、区并填写详细地址'))
+      },
+      trigger: 'blur'
+    }]
   }
 })
 
@@ -166,10 +192,24 @@ function formatEnable(status) {
   return item ? item.label : status
 }
 
+function formatProductType(type) {
+  return productLabel(productTypeOptions.value, type) || type || '-'
+}
+
+function loadProductTypeOptions() {
+  return loadEnabledProductOptions().then(list => {
+    productTypeOptions.value = list.length ? list : [
+      { label: '杨梅', value: 'yangmei' },
+      { label: '五常大米', value: 'rice' }
+    ]
+  })
+}
+
 function buildSubmitPayload() {
   const codes = regionCodes.value || []
   return {
     id: form.value.id,
+    productType: form.value.productType || 'yangmei',
     name: buildFullAddress(codes[0], codes[1], codes[2], form.value.detailAddress),
     sortOrder: form.value.sortOrder,
     status: form.value.status
@@ -195,6 +235,7 @@ function reset() {
   form.value = {
     id: undefined,
     name: undefined,
+    productType: 'yangmei',
     detailAddress: undefined,
     sortOrder: 0,
     status: 1
@@ -224,13 +265,23 @@ function handleAdd() {
   title.value = '添加产地'
 }
 
+function applyOriginToForm(data) {
+  form.value = {
+    ...data,
+    productType: data.productType || 'yangmei',
+    sortOrder: data.sortOrder ?? 0,
+    status: data.status ?? 1
+  }
+  const parsed = parseStoredOriginName(data.name)
+  regionCodes.value = parsed.codes
+  form.value.detailAddress = parsed.codes.length ? parsed.detailAddress : (data.name || '')
+}
+
 function handleUpdate(row) {
   reset()
   const id = row.id || ids.value
   getOrigin(id).then(response => {
-    form.value = response.data
-    regionCodes.value = []
-    form.value.detailAddress = undefined
+    applyOriginToForm(response.data || {})
     open.value = true
     title.value = '修改产地'
   })
@@ -271,12 +322,11 @@ function handleDelete(row) {
   }).catch(() => {})
 }
 
-getList()
+loadProductTypeOptions().then(() => getList())
 </script>
 
 <style scoped>
-.full-address-preview,
-.current-name {
+.full-address-preview {
   font-size: 13px;
   color: var(--el-text-color-secondary);
   line-height: 1.5;

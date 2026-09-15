@@ -15,3 +15,36 @@ export function namesToRegionCodes(province, city, district) {
   }
   return [province, city, district]
 }
+
+function regionNodeLabel(node) {
+  return node?.value || node?.label || ''
+}
+
+/**
+ * 从 origins.name（省+市+区+详细地址拼接）还原级联与详细地址
+ */
+export function parseStoredOriginName(fullName) {
+  const text = fullName == null ? '' : String(fullName).trim()
+  if (!text) {
+    return { codes: [], detailAddress: '' }
+  }
+  for (const province of regionData) {
+    const pLabel = regionNodeLabel(province)
+    if (!pLabel || !text.startsWith(pLabel)) continue
+    const afterP = text.slice(pLabel.length)
+    for (const city of province.children || []) {
+      const cLabel = regionNodeLabel(city)
+      if (!cLabel || !afterP.startsWith(cLabel)) continue
+      const afterC = afterP.slice(cLabel.length)
+      for (const district of city.children || []) {
+        const dLabel = regionNodeLabel(district)
+        if (!dLabel || !afterC.startsWith(dLabel)) continue
+        return {
+          codes: [pLabel, cLabel, dLabel],
+          detailAddress: afterC.slice(dLabel.length).trim()
+        }
+      }
+    }
+  }
+  return { codes: [], detailAddress: text }
+}

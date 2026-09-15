@@ -3,7 +3,7 @@
     <header class="workbench-header">
       <div class="header-text">
         <h1 class="page-title">工作台</h1>
-        <p class="page-subtitle">见证书管理系统概览</p>
+        <p class="page-subtitle">见证业务概览 · 查询码 → 批次 → 见证书</p>
       </div>
       <el-button
         type="primary"
@@ -51,6 +51,7 @@
 <script setup name="Index">
 import { Document, CircleCheck, Clock, Delete } from '@element-plus/icons-vue'
 import { listCertificate } from '@/api/ym/certificate'
+import { findYmMenuPath } from '@/utils/ymRoute'
 
 const router = useRouter()
 
@@ -99,22 +100,28 @@ const statCards = computed(() => [
 
 const quickActions = [
   {
+    key: 'code',
+    label: '生成查询码',
+    permi: ['ym:verificationCode:generate'],
+    handler: goVerificationCode
+  },
+  {
+    key: 'batch',
+    label: '管理批次',
+    permi: ['ym:batch:list'],
+    handler: goBatch
+  },
+  {
     key: 'new',
-    label: '新建证书',
+    label: '提交见证',
     permi: ['ym:certificate:add'],
     handler: goNewCertificate
   },
   {
     key: 'pending',
-    label: '待激活证书',
+    label: '待激活见证书',
     permi: ['ym:certificate:list'],
     handler: () => goCertificateList({ status: 1 })
-  },
-  {
-    key: 'code',
-    label: '批量生成查询码',
-    permi: ['ym:verificationCode:generate'],
-    handler: goVerificationCode
   },
   {
     key: 'origin',
@@ -124,40 +131,32 @@ const quickActions = [
   }
 ]
 
-function findRoutePath(keyword, exclude = []) {
-  const routes = router.getRoutes()
-  const matched = routes
-    .filter(r => r.path && r.path !== '/' && !r.path.includes(':'))
-    .filter(r => !exclude.some(ex => r.path.toLowerCase().includes(ex)))
-    .filter(r => r.path.toLowerCase().includes(keyword.toLowerCase()))
-  if (!matched.length) {
-    return null
-  }
-  return matched.sort((a, b) => b.path.length - a.path.length)[0].path
-}
-
 function navigate(path, query) {
   if (!path) {
-    ElMessage.warning('未找到对应菜单，请从侧边栏进入')
+    ElMessage.warning('未找到对应菜单，请从侧边栏「见证业务」进入')
     return
   }
   router.push({ path, query })
 }
 
 function goCertificateList(query) {
-  navigate(findRoutePath('certificate', ['verify']), query)
+  navigate(findYmMenuPath(router, 'certificate', ['verify']), query)
 }
 
 function goNewCertificate() {
-  navigate(findRoutePath('certificate', ['verify']), { action: 'add' })
+  navigate(findYmMenuPath(router, 'certificate', ['verify']), { action: 'add' })
 }
 
 function goVerificationCode() {
-  navigate(findRoutePath('verification'))
+  navigate(findYmMenuPath(router, 'verification'))
 }
 
 function goOrigin() {
-  navigate(findRoutePath('origin'))
+  navigate(findYmMenuPath(router, 'origin'))
+}
+
+function goBatch() {
+  navigate(findYmMenuPath(router, 'batch'))
 }
 
 function fetchStatCount(params) {

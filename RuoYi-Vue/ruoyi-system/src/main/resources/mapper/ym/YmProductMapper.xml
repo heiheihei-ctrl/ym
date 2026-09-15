@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.ym.mapper.YmProductMapper">
+
+    <resultMap type="com.ruoyi.ym.domain.YmProduct" id="YmProductResult">
+        <id     property="id"          column="id" />
+        <result property="productCode" column="product_code" />
+        <result property="productName" column="product_name" />
+        <result property="sortOrder"   column="sort_order" />
+        <result property="status"      column="status" />
+        <result property="remark"      column="remark" />
+        <result property="createdAt"   column="created_at" />
+        <result property="updatedAt"   column="updated_at" />
+    </resultMap>
+
+    <sql id="selectVo">
+        select id, product_code, product_name, sort_order, status, remark, created_at, updated_at
+        from ym_products
+    </sql>
+
+    <select id="selectYmProductList" resultMap="YmProductResult">
+        <include refid="selectVo"/>
+        <where>
+            <if test="productCode != null and productCode != ''">AND product_code like concat('%', #{productCode}, '%')</if>
+            <if test="productName != null and productName != ''">AND product_name like concat('%', #{productName}, '%')</if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+        order by sort_order asc, id asc
+    </select>
+
+    <select id="selectYmProductById" resultMap="YmProductResult">
+        <include refid="selectVo"/> where id = #{id}
+    </select>
+
+    <select id="selectYmProductByCode" resultMap="YmProductResult">
+        <include refid="selectVo"/> where product_code = #{productCode}
+    </select>
+
+    <insert id="insertYmProduct" useGeneratedKeys="true" keyProperty="id">
+        insert into ym_products
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="productCode != null">product_code,</if>
+            <if test="productName != null">product_name,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="status != null">status,</if>
+            <if test="remark != null">remark,</if>
+            created_at, updated_at,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="productCode != null">#{productCode},</if>
+            <if test="productName != null">#{productName},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="status != null">#{status},</if>
+            <if test="remark != null">#{remark},</if>
+            sysdate(), sysdate(),
+        </trim>
+    </insert>
+
+    <update id="updateYmProduct">
+        update ym_products
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="productCode != null">product_code = #{productCode},</if>
+            <if test="productName != null">product_name = #{productName},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            updated_at = sysdate(),
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteYmProductByIds">
+        delete from ym_products where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">#{id}</foreach>
+    </delete>
+
+    <select id="countCertificateByProductCode" resultType="int">
+        select count(1) from certificates where product_type = #{productCode}
+    </select>
+
+    <select id="countOriginByProductCode" resultType="int">
+        select count(1) from origins where product_type = #{productCode}
+    </select>
+
+    <select id="countBatchByProductType" resultType="int">
+        select count(1) from ym_batches where product_type = #{productCode}
+    </select>
+
+    <update id="updateCertificateProductType">
+        update certificates set product_type = #{newCode} where product_type = #{oldCode}
+    </update>
+
+    <update id="updateOriginProductType">
+        update origins set product_type = #{newCode} where product_type = #{oldCode}
+    </update>
+
+    <update id="updateBatchProductType">
+        update ym_batches set product_type = #{newCode} where product_type = #{oldCode}
+    </update>
+</mapper>

@@ -12,7 +12,7 @@ import com.ruoyi.common.utils.file.ImageUtils;
 import com.ruoyi.ym.domain.VerificationCode;
 
 /**
- * 查询码扫码二维码多选打包 ZIP
+ * Pack verification QR images into a ZIP archive.
  */
 public final class YmVerificationQrZipUtils
 {
@@ -24,7 +24,7 @@ public final class YmVerificationQrZipUtils
     {
         if (rows == null || rows.isEmpty())
         {
-            throw new ServiceException("未找到所选查询码");
+            throw new ServiceException("No verification codes selected");
         }
         int fileCount = 0;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -38,7 +38,7 @@ public final class YmVerificationQrZipUtils
         }
         if (fileCount == 0)
         {
-            throw new ServiceException("所选查询码没有可下载的二维码图片");
+            throw new ServiceException("No downloadable QR images for selected codes");
         }
         return baos.toByteArray();
     }
@@ -47,7 +47,7 @@ public final class YmVerificationQrZipUtils
     {
         String baseName = safeFileName(StringUtils.isNotEmpty(row.getCode())
             ? row.getCode()
-            : ("查询码_" + row.getId()));
+            : ("code_" + row.getId()));
         String entryName = baseName + extOrDefault(row.getCodeUrl(), ".png");
         return putFile(zos, entryName, row.getCodeUrl());
     }

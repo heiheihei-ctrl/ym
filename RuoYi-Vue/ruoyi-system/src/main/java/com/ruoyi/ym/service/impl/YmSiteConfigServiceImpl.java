@@ -28,6 +28,18 @@ public class YmSiteConfigServiceImpl implements IYmSiteConfigService
     public int saveSiteConfig(YmSiteConfig config)
     {
         config.setId(1);
+        if (config.getRedirectUrl() != null)
+        {
+            config.setRedirectUrl(config.getRedirectUrl().trim());
+            if (config.getRedirectUrl().isEmpty())
+            {
+                config.setRedirectUrl("");
+            }
+        }
+        if (config.getRedirectDelaySeconds() == null || config.getRedirectDelaySeconds() < 0)
+        {
+            config.setRedirectDelaySeconds(6);
+        }
         YmSiteConfig existing = siteConfigMapper.selectSiteConfig();
         if (existing == null)
         {
@@ -45,6 +57,8 @@ public class YmSiteConfigServiceImpl implements IYmSiteConfigService
         config.setQueryBottomTip("扫码查证 · 谨防假冒");
         config.setPhone("0571-XXXXXXXX");
         config.setAddress("浙江省杭州市西湖区XX路XX号XX大厦XX楼");
+        config.setRedirectUrl(null);
+        config.setRedirectDelaySeconds(6);
         return config;
     }
 }

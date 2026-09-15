@@ -28,6 +28,7 @@ import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.ym.domain.Certificate;
 import com.ruoyi.ym.domain.VerificationCode;
+import com.ruoyi.ym.domain.dto.CertificateRangeBindRequest;
 import com.ruoyi.ym.domain.dto.VerificationCodeBatchRequest;
 import com.ruoyi.ym.service.ICertificateService;
 import com.ruoyi.ym.service.IVerificationCodeService;
@@ -59,9 +60,9 @@ public class CertificateController extends BaseController
 
     @PreAuthorize("@ss.hasPermi('ym:verificationCode:list') or @ss.hasPermi('ym:certificate:add')")
     @GetMapping("/verificationCode/unusedList")
-    public AjaxResult verificationCodeUnusedList()
+    public AjaxResult verificationCodeUnusedList(@RequestParam(value = "productType", required = false) String productType)
     {
-        return success(verificationCodeService.selectUnusedVerificationCodeList());
+        return success(verificationCodeService.selectUnusedVerificationCodeList(productType));
     }
 
     @PreAuthorize("@ss.hasPermi('ym:verificationCode:generate')")
@@ -133,6 +134,14 @@ public class CertificateController extends BaseController
     public AjaxResult getInfo(@PathVariable Integer id)
     {
         return success(certificateService.selectCertificateById(id));
+    }
+
+    @PreAuthorize("@ss.hasPermi('ym:certificate:edit') or @ss.hasPermi('ym:certificate:add')")
+    @Log(title = "证书区间绑定", businessType = BusinessType.UPDATE)
+    @PostMapping("/bindRange")
+    public AjaxResult bindRange(@RequestBody CertificateRangeBindRequest request)
+    {
+        return success(certificateService.bindCodeRange(request));
     }
 
     @PreAuthorize("@ss.hasPermi('ym:certificate:add')")

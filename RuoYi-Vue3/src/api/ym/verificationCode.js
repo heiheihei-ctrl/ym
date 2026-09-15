@@ -10,10 +10,11 @@ export function listVerificationCode(query) {
   })
 }
 
-export function listUnusedVerificationCode() {
+export function listUnusedVerificationCode(params) {
   return request({
     url: '/ym/certificate/verificationCode/unusedList',
-    method: 'get'
+    method: 'get',
+    params
   })
 }
 

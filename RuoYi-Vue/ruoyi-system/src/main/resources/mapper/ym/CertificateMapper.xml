@@ -3,33 +3,47 @@
 <mapper namespace="com.ruoyi.ym.mapper.CertificateMapper">
 
     <resultMap type="com.ruoyi.ym.domain.Certificate" id="CertificateResult">
-        <id     property="id"           column="id" />
-        <result property="code"               column="code" />
+        <id     property="id"               column="id" />
+        <result property="code"             column="code" />
+        <result property="batchId"          column="batch_id" />
+        <result property="productType"      column="product_type" />
+        <result property="batchName"        column="batch_name" />
+        <result property="batchNo"          column="batch_no" />
+        <result property="batchVideoUrl"    column="batch_video_url" />
         <result property="verificationCode" column="verification_code" />
-        <result property="codeUrl"            column="code_url" />
-        <result property="certImage"          column="cert_image" />
-        <result property="status"       column="status" />
-        <result property="origin"       column="origin" />
-        <result property="baseDetailUrl" column="base_detail_url" />
-        <result property="pickDate"     column="pick_date" />
-        <result property="packDate"     column="pack_date" />
-        <result property="lawyerName"   column="lawyer_name" />
-        <result property="certFile"     column="cert_file" />
-        <result property="uploadAt"     column="upload_at" />
-        <result property="uploadIp"     column="upload_ip" />
-        <result property="auditBy"      column="audit_by" />
-        <result property="auditAt"      column="audit_at" />
-        <result property="rejectReason" column="reject_reason" />
-        <result property="createdAt"    column="created_at" />
-        <result property="ipLog"        column="ip_log" />
+        <result property="codeUrl"          column="code_url" />
+        <result property="certImage"        column="cert_image" />
+        <result property="status"           column="status" />
+        <result property="origin"           column="origin" />
+        <result property="processor"        column="processor" />
+        <result property="warehouse"        column="warehouse" />
+        <result property="harvestDate"      column="harvest_date" />
+        <result property="processDate"      column="process_date" />
+        <result property="baseDetailUrl"    column="base_detail_url" />
+        <result property="pickDate"         column="pick_date" />
+        <result property="packDate"         column="pack_date" />
+        <result property="lawyerName"       column="lawyer_name" />
+        <result property="certFile"         column="cert_file" />
+        <result property="uploadAt"         column="upload_at" />
+        <result property="uploadIp"         column="upload_ip" />
+        <result property="auditBy"          column="audit_by" />
+        <result property="auditAt"          column="audit_at" />
+        <result property="rejectReason"     column="reject_reason" />
+        <result property="createdAt"        column="created_at" />
+        <result property="ipLog"            column="ip_log" />
+        <result property="boundCodeCount"   column="bound_code_count" />
     </resultMap>
 
     <sql id="selectCertificateVo">
-        select c.id, c.code, v.code as verification_code, v.code_url, c.cert_image, c.status, c.origin,
+        select c.id, c.code, c.batch_id, c.product_type, b.name as batch_name, b.batch_no, b.video_url as batch_video_url,
+               v.code as verification_code, v.code_url, c.cert_image, c.status, c.origin,
+               c.processor, c.warehouse, c.harvest_date, c.process_date,
                c.base_detail_url, c.pick_date, c.pack_date, c.lawyer_name, c.cert_file, c.upload_at, c.upload_ip,
-               c.audit_by, c.audit_at, c.reject_reason, c.created_at, c.ip_log
+               c.audit_by, c.audit_at, c.reject_reason, c.created_at, c.ip_log,
+               (select count(1) from verification bv where bv.certificate_id = c.id) as bound_code_count
         from certificates c
         left join verification v on c.code = v.id
+        left join ym_batches b on c.batch_id = b.id
     </sql>
 
     <select id="selectCertificateList" resultMap="CertificateResult">
@@ -39,6 +53,9 @@
             <if test="status != null">AND c.status = #{status}</if>
             <if test="origin != null and origin != ''">AND c.origin like concat('%', #{origin}, '%')</if>
             <if test="lawyerName != null and lawyerName != ''">AND c.lawyer_name like concat('%', #{lawyerName}, '%')</if>
+            <if test="batchId != null">AND c.batch_id = #{batchId}</if>
+            <if test="productType != null and productType != ''">AND c.product_type = #{productType}</if>
+            <if test="batchName != null and batchName != ''">AND b.name like concat('%', #{batchName}, '%')</if>
         </where>
         order by c.id desc
     </select>
@@ -50,15 +67,24 @@
 
     <select id="selectCertificateByVerificationId" resultMap="CertificateResult">
         <include refid="selectCertificateVo"/>
-        where c.code = #{verificationId} limit 1
+        where c.id = (select certificate_id from verification where id = #{verificationId} and certificate_id is not null)
+           or c.code = #{verificationId}
+        order by case when c.id = (select certificate_id from verification where id = #{verificationId}) then 0 else 1 end
+        limit 1
     </select>
 
     <insert id="insertCertificate" useGeneratedKeys="true" keyProperty="id">
         insert into certificates
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="code != null">code,</if>
+            <if test="batchId != null">batch_id,</if>
+            <if test="productType != null">product_type,</if>
             <if test="status != null">status,</if>
             <if test="origin != null">origin,</if>
+            <if test="processor != null">processor,</if>
+            <if test="warehouse != null">warehouse,</if>
+            <if test="harvestDate != null">harvest_date,</if>
+            <if test="processDate != null">process_date,</if>
             <if test="baseDetailUrl != null">base_detail_url,</if>
             <if test="pickDate != null">pick_date,</if>
             <if test="packDate != null">pack_date,</if>
@@ -75,8 +101,14 @@
         </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="code != null">#{code},</if>
+            <if test="batchId != null">#{batchId},</if>
+            <if test="productType != null">#{productType},</if>
             <if test="status != null">#{status},</if>
             <if test="origin != null">#{origin},</if>
+            <if test="processor != null">#{processor},</if>
+            <if test="warehouse != null">#{warehouse},</if>
+            <if test="harvestDate != null">#{harvestDate},</if>
+            <if test="processDate != null">#{processDate},</if>
             <if test="baseDetailUrl != null">#{baseDetailUrl},</if>
             <if test="pickDate != null">#{pickDate},</if>
             <if test="packDate != null">#{packDate},</if>
@@ -96,8 +128,15 @@
     <update id="updateCertificate">
         update certificates
         <trim prefix="SET" suffixOverrides=",">
+            <if test="code != null">code = #{code},</if>
+            <if test="batchId != null">batch_id = #{batchId},</if>
+            <if test="productType != null">product_type = #{productType},</if>
             <if test="status != null">status = #{status},</if>
             <if test="origin != null">origin = #{origin},</if>
+            <if test="processor != null">processor = #{processor},</if>
+            <if test="warehouse != null">warehouse = #{warehouse},</if>
+            <if test="harvestDate != null">harvest_date = #{harvestDate},</if>
+            <if test="processDate != null">process_date = #{processDate},</if>
             <if test="baseDetailUrl != null">base_detail_url = #{baseDetailUrl},</if>
             <if test="pickDate != null">pick_date = #{pickDate},</if>
             <if test="packDate != null">pack_date = #{packDate},</if>

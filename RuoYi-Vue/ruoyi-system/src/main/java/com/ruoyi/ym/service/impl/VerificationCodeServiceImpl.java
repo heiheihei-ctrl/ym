@@ -1,38 +1,43 @@
 package com.ruoyi.ym.service.impl;
 
-import java.io.IOException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.utils.SecurityUtils;
 import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.ym.domain.VerificationCode;
 import com.ruoyi.ym.domain.dto.VerificationCodeBatchRequest;
 import com.ruoyi.ym.mapper.VerificationCodeMapper;
+import com.ruoyi.ym.service.IYmProductService;
 import com.ruoyi.ym.service.IVerificationCodeService;
+import com.ruoyi.ym.utils.NanoIdUtils;
 import com.ruoyi.ym.utils.YmPublicUrlUtils;
 import com.ruoyi.ym.utils.YmQrCodeHelper;
 import com.ruoyi.ym.utils.YmVerificationQrZipUtils;
+import java.io.IOException;
 
 @Service
 public class VerificationCodeServiceImpl implements IVerificationCodeService
 {
     private static final int MAX_BATCH = 1000;
-
-    /** 查询码流水号位数（前缀 + yyyyMM + 流水号） */
-    private static final int SEQ_DIGIT_LENGTH = 6;
+    private static final int MAX_COLLISION_RETRY = 8;
 
     @Autowired
     private VerificationCodeMapper verificationCodeMapper;
 
     @Autowired
     private YmPublicUrlUtils ymPublicUrlUtils;
+
+    @Autowired
+    private IYmProductService ymProductService;
 
     @Override
     public List<VerificationCode> selectVerificationCodeList(VerificationCode query)
@@ -41,43 +46,40 @@ public class VerificationCodeServiceImpl implements IVerificationCodeService
     }
 
     @Override
-    public List<VerificationCode> selectUnusedVerificationCodeList()
+    public List<VerificationCode> selectUnusedVerificationCodeList(String productType)
     {
-        return verificationCodeMapper.selectUnusedVerificationCodeList();
+        String type = StringUtils.isEmpty(productType) ? null : productType.trim().toLowerCase();
+        return verificationCodeMapper.selectUnusedVerificationCodeList(type);
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> batchGenerate(VerificationCodeBatchRequest request)
     {
-        String prefix = normalizePrefix(request.getPrefix());
         int count = request.getCount() == null ? 0 : request.getCount();
         if (count < 1 || count > MAX_BATCH)
         {
             throw new ServiceException("生成数量需在 1～" + MAX_BATCH + " 之间");
         }
-
-        String monthKey = prefix + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMM"));
-        Integer maxSeq = verificationCodeMapper.selectMaxMonthlySeq(monthKey);
-        int start = maxSeq == null ? 0 : maxSeq;
-        long maxAllowed = (long) Math.pow(10, SEQ_DIGIT_LENGTH) - 1;
-        if ((long) start + count > maxAllowed)
-        {
-            throw new ServiceException("本月流水号已达上限（" + SEQ_DIGIT_LENGTH + " 位，最大 " + maxAllowed + "）");
-        }
+        String prefix = normalizeOptionalPrefix(request.getPrefix());
+        String productType = normalizeProductType(request.getProductType());
+        ymProductService.assertEnabledProductCode(productType);
+        String createBy = SecurityUtils.getUsername();
+        Date createdAt = new Date();
 
         List<VerificationCode> list = new ArrayList<>(count);
         List<String> codes = new ArrayList<>(count);
-        for (int i = 1; i <= count; i++)
+        Set<String> batchSet = new HashSet<>();
+        for (int i = 0; i < count; i++)
         {
-            String code = monthKey + String.format("%0" + SEQ_DIGIT_LENGTH + "d", start + i);
-            if (verificationCodeMapper.selectVerificationCodeByCode(code) != null)
-            {
-                throw new ServiceException("查询码已存在：" + code);
-            }
+            String code = nextUniqueCode(prefix, batchSet);
+            batchSet.add(code);
             VerificationCode row = new VerificationCode();
             row.setCode(code);
             row.setCodeUrl(generateQrCodeUrl(code));
+            row.setProductType(productType);
+            row.setCreatedAt(createdAt);
+            row.setCreateBy(createBy);
             list.add(row);
             codes.add(code);
         }
@@ -89,9 +91,62 @@ public class VerificationCodeServiceImpl implements IVerificationCodeService
         return result;
     }
 
+    private String nextUniqueCode(String prefix, Set<String> batchSet)
+    {
+        for (int attempt = 0; attempt < MAX_COLLISION_RETRY; attempt++)
+        {
+            String code = prefix + NanoIdUtils.randomId();
+            if (batchSet.contains(code))
+            {
+                continue;
+            }
+            if (verificationCodeMapper.selectVerificationCodeByCode(code) == null)
+            {
+                return code;
+            }
+        }
+        throw new ServiceException("生成随机查询码失败，请重试");
+    }
+
+    private String normalizeProductType(String productType)
+    {
+        if (StringUtils.isEmpty(productType))
+        {
+            throw new ServiceException("请选择产品类型");
+        }
+        return productType.trim().toLowerCase();
+    }
+
+    /** 可选前缀：仅字母，可为空 */
+    private String normalizeOptionalPrefix(String prefix)
+    {
+        if (StringUtils.isEmpty(prefix))
+        {
+            return "";
+        }
+        String p = prefix.trim().toUpperCase();
+        if (!p.matches("^[A-Z]{0,10}$"))
+        {
+            throw new ServiceException("查询码前缀仅限字母（可留空）");
+        }
+        return p;
+    }
+
     @Override
     public int deleteVerificationCodeByIds(Integer[] ids)
     {
+        if (ids != null)
+        {
+            for (Integer id : ids)
+            {
+                VerificationCode vc = verificationCodeMapper.selectVerificationCodeById(id);
+                if (vc != null && (vc.getBindStatus() != null && vc.getBindStatus() == VerificationCode.BIND_STATUS_BOUND
+                        || vc.getCertificateId() != null))
+                {
+                    throw new ServiceException("查询码已绑定证书，无法删除：" + vc.getCode());
+                }
+            }
+        }
         return verificationCodeMapper.deleteVerificationCodeByIds(ids);
     }
 
@@ -121,19 +176,5 @@ public class VerificationCodeServiceImpl implements IVerificationCodeService
             throw new ServiceException("请配置 ruoyi.publicVerifyUrl（扫码页根地址）以生成二维码");
         }
         return YmQrCodeHelper.saveQrImage(scanUrl, codeLabel);
-    }
-
-    private String normalizePrefix(String prefix)
-    {
-        if (StringUtils.isEmpty(prefix))
-        {
-            throw new ServiceException("查询码前缀不能为空");
-        }
-        String p = prefix.trim().toUpperCase();
-        if (!p.matches("^[A-Z]+$"))
-        {
-            throw new ServiceException("查询码前缀仅限字母，如 WM");
-        }
-        return p;
     }
 }

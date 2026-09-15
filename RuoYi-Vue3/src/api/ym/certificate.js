@@ -37,3 +37,12 @@ export function delCertificate(id) {
     method: 'delete'
   })
 }
+
+/** 将包装序号区间绑定到已有见证书 */
+export function bindCertificateRange(data) {
+  return request({
+    url: '/ym/certificate/bindRange',
+    method: 'post',
+    data: data
+  })
+}

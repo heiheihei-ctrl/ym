@@ -23,6 +23,10 @@ public class Origin implements Serializable
     @Excel(name = "产地地址")
     private String name;
 
+    /** 产品类型：yangmei 杨梅 / rice 五常大米 */
+    @Excel(name = "产品类型", readConverterExp = "yangmei=杨梅,rice=五常大米")
+    private String productType;
+
     /** 排序序号 */
     @Excel(name = "排序序号")
     private Integer sortOrder;
@@ -54,6 +58,16 @@ public class Origin implements Serializable
     public void setName(String name)
     {
         this.name = name;
+    }
+
+    public String getProductType()
+    {
+        return productType;
+    }
+
+    public void setProductType(String productType)
+    {
+        this.productType = productType;
     }
 
     public Integer getSortOrder()
@@ -92,6 +106,7 @@ public class Origin implements Serializable
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
             .append("id", getId())
             .append("name", getName())
+            .append("productType", getProductType())
             .append("sortOrder", getSortOrder())
             .append("status", getStatus())
             .append("createdAt", getCreatedAt())

@@ -9,7 +9,7 @@ public interface IVerificationCodeService
 {
     List<VerificationCode> selectVerificationCodeList(VerificationCode query);
 
-    List<VerificationCode> selectUnusedVerificationCodeList();
+    List<VerificationCode> selectUnusedVerificationCodeList(String productType);
 
     Map<String, Object> batchGenerate(VerificationCodeBatchRequest request);
 

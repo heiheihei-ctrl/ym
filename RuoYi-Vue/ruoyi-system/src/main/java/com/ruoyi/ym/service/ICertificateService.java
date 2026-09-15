@@ -1,13 +1,13 @@
 package com.ruoyi.ym.service;
 
 import java.util.List;
+import java.util.Map;
 import com.ruoyi.ym.domain.Certificate;
+import com.ruoyi.ym.domain.dto.CertificateRangeBindRequest;
 import com.ruoyi.ym.domain.vo.CertificatePublicVerifyVO;
 
 /**
  * 证书 Service
- *
- * @author ruoyi
  */
 public interface ICertificateService
 {
@@ -22,7 +22,12 @@ public interface ICertificateService
     int deleteCertificateByIds(Integer[] ids);
 
     /**
-     * 公开查验见证书（无需登录）
+     * 将包装序号区间绑定到已有见证书
+     */
+    Map<String, Object> bindCodeRange(CertificateRangeBindRequest request);
+
+    /**
+     * 公开查验见证书（无需登录），并记录扫码指纹
      */
     CertificatePublicVerifyVO verifyByCodePublic(String code);
 }

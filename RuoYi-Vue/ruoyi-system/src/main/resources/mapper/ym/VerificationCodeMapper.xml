@@ -3,29 +3,47 @@
 <mapper namespace="com.ruoyi.ym.mapper.VerificationCodeMapper">
 
     <resultMap type="com.ruoyi.ym.domain.VerificationCode" id="VerificationCodeResult">
-        <id     property="id"      column="id" />
-        <result property="code"    column="code" />
-        <result property="codeUrl" column="code_url" />
+        <id     property="id"            column="id" />
+        <result property="code"          column="code" />
+        <result property="codeUrl"       column="code_url" />
+        <result property="productType"   column="product_type" />
+        <result property="certificateId" column="certificate_id" />
+        <result property="bindStatus"    column="bind_status" />
+        <result property="boundAt"       column="bound_at" />
+        <result property="createdAt"     column="created_at" />
+        <result property="createBy"      column="create_by" />
     </resultMap>
 
     <sql id="selectVo">
-        select id, code, code_url from verification
+        select id, code, code_url, product_type, certificate_id, bind_status, bound_at, created_at, create_by from verification
     </sql>
 
     <select id="selectVerificationCodeList" resultMap="VerificationCodeResult">
         <include refid="selectVo"/>
         <where>
             <if test="code != null and code != ''">AND code like concat('%', #{code}, '%')</if>
+            <if test="bindStatus != null">AND bind_status = #{bindStatus}</if>
+            <if test="certificateId != null">AND certificate_id = #{certificateId}</if>
+            <if test="productType != null and productType != ''">AND product_type = #{productType}</if>
+            <if test="createBy != null and createBy != ''">AND create_by like concat('%', #{createBy}, '%')</if>
         </where>
         order by id desc
     </select>
 
     <select id="selectUnusedVerificationCodeList" resultMap="VerificationCodeResult">
-        select v.id, v.code, v.code_url
-        from verification v
-        left join certificates c on c.code = v.id
-        where c.id is null
-        order by v.id desc
+        <include refid="selectVo"/>
+        where (bind_status is null or bind_status = 0) and certificate_id is null
+        <if test="productType != null and productType != ''">
+            <choose>
+                <when test="productType == 'yangmei'">
+                    AND (product_type = 'yangmei' OR product_type IS NULL OR product_type = '')
+                </when>
+                <otherwise>
+                    AND product_type = #{productType}
+                </otherwise>
+            </choose>
+        </if>
+        order by id desc
     </select>
 
     <select id="selectVerificationCodeById" resultMap="VerificationCodeResult">
@@ -48,9 +66,9 @@
     </select>
 
     <insert id="batchInsertVerificationCode">
-        insert into verification (code, code_url) values
+        insert into verification (code, code_url, product_type, certificate_id, bind_status, created_at, create_by) values
         <foreach collection="list" item="item" separator=",">
-            (#{item.code}, #{item.codeUrl})
+            (#{item.code}, #{item.codeUrl}, #{item.productType}, null, 0, #{item.createdAt}, #{item.createBy})
         </foreach>
     </insert>
 
@@ -66,4 +84,57 @@
         order by id desc
     </select>
 
+    <select id="selectByCodeRange" resultMap="VerificationCodeResult">
+        <include refid="selectVo"/>
+        where code &gt;= #{startCode} and code &lt;= #{endCode}
+          and char_length(code) = char_length(#{startCode})
+        order by code asc
+    </select>
+
+    <select id="countBoundInRange" resultType="int">
+        select count(1) from verification
+        where code &gt;= #{startCode} and code &lt;= #{endCode}
+          and char_length(code) = char_length(#{startCode})
+          and (bind_status = 1 or certificate_id is not null)
+    </select>
+
+    <update id="bindCertificateRange">
+        update verification
+        set certificate_id = #{certificateId},
+            bind_status = 1,
+            bound_at = #{boundAt}
+        where code &gt;= #{startCode} and code &lt;= #{endCode}
+          and char_length(code) = char_length(#{startCode})
+          and (bind_status is null or bind_status = 0)
+          and certificate_id is null
+    </update>
+
+    <update id="bindCertificateByIds">
+        update verification
+        set certificate_id = #{certificateId},
+            bind_status = 1,
+            bound_at = #{boundAt}
+        where id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">#{id}</foreach>
+          and (bind_status is null or bind_status = 0)
+          and certificate_id is null
+    </update>
+
+    <select id="countBoundByIds" resultType="int">
+        select count(1) from verification
+        where id in
+        <foreach item="id" collection="ids" open="(" separator="," close=")">#{id}</foreach>
+          and (bind_status = 1 or certificate_id is not null)
+    </select>
+
+    <select id="countByCertificateId" resultType="int">
+        select count(1) from verification where certificate_id = #{certificateId}
+    </select>
+
+    <update id="clearBindingByCertificateIds">
+        update verification
+        set certificate_id = null, bind_status = 0, bound_at = null
+        where certificate_id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">#{id}</foreach>
+    </update>
 </mapper>
